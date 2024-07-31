@@ -264,27 +264,59 @@ class MyBot(QMainWindow, form_class):
                 outStandingVolume = self.kiwoom.dynamicCall("GetChejanData(int)", 902).strip(" ")
                 tradeGubun = self.kiwoom.dynamicCall("GetChejanData(int)", 905).strip(" ").strip("+").strip("-")
                 orderTime = self.kiwoom.dynamicCall("GetChejanData(int)", 908).strip(" ")
-                currentPrice = self.kiwoom.dynamicCall("GetChejanData(int)", 10).strip(" ")
+                currentPrice = abs(int(self.kiwoom.dynamicCall("GetChejanData(int)", 10).strip(" ")))
+
+                for rowIndex in range(self.outstandingTableWidget.rowCount()):
+                    if self.outstandingTableWidget.item(rowIndex, 2).text() == orderNumber \
+                        and self.outstandingTableWidget.item(rowIndex, 3).text() == orderVolume \
+                        and self.outstandingTableWidget.item(rowIndex, 4).text() == orderPrice :
+                        if self.outstandingTableWidget.item(rowIndex, 5).text() == outStandingVolume :
+                            # 정정 확인 주문
+                            return
+                        else:
+                            # 원주문 삭제
+                            self.outstandingTableWidget.removeRow(rowIndex)
+                            for itemIndex in range(len(self.myModel.outstandingBalanceList)):
+                                if self.myModel.outstandingBalanceList[itemIndex].orderNumber == orderNumber \
+                                    and self.myModel.outstandingBalanceList[itemIndex].orderVolume == orderVolume \
+                                    and self.myModel.outstandingBalanceList[itemIndex].orderPrice == orderPrice  \
+                                    and self.myModel.outstandingBalanceList[itemIndex].outstandingVolume != outStandingVolume:
+                                    del self.myModel.outstandingBalanceList[itemIndex]
+                                    break
+                            break
+
+                #취소시 주문 삭제
+                if outStandingVolume == 0 :
+                    for itemIndex in range(len(self.myModel.outstandingBalanceList)):
+                        if self.myModel.outstandingBalanceList[itemIndex].orderNumber == orderNumber :
+                            del self.myModel.outstandingBalanceList[itemIndex]
+                            break
+
+                    for rowIndex in range(self.outstandingTableWidget.rowCount()):
+                        if self.outstandingTableWidget.item(rowIndex, 2).text() == orderNumber :
+                            self.outstandingTableWidget.removeRow(rowIndex)
+                            break
+                    return
 
                 #데이터 추가
                 outStandingOrder = dm.DataModel.OutstandingBalance(itemCode, itemName, orderNumber, orderVolume, orderPrice, outStandingVolume,tradeGubun, orderTime, currentPrice)
                 self.myModel.outstandingBalanceList.append(outStandingOrder)
 
                 #테이블 추가
-                self.outStandingTableWidget.setRowCount(self.myModel.outStandingTableWidget.rowCount() + 1)
-                index = self.outStandingTableWidget.rowCount() - 1
+                self.outstandingTableWidget.setRowCount(self.outstandingTableWidget.rowCount() + 1)
+                index = self.outstandingTableWidget.rowCount() - 1
 
-                self.outStandingTableWidget.setItem(index, 0, QTableWidgetItem(str(itemCode)))
-                self.outStandingTableWidget.setItem(index, 1, QTableWidgetItem(str(itemName)))
-                self.outStandingTableWidget.setItem(index, 2, QTableWidgetItem(str(orderNumber)))
-                self.outStandingTableWidget.setItem(index, 3, QTableWidgetItem(str(orderVolume)))
-                self.outStandingTableWidget.setItem(index, 4, QTableWidgetItem(str(orderPrice)))
-                self.outStandingTableWidget.setItem(index, 5, QTableWidgetItem(str(outStandingVolume)))
-                self.outStandingTableWidget.setItem(index, 6, QTableWidgetItem(str(tradeGubun)))
-                self.outStandingTableWidget.setItem(index, 7, QTableWidgetItem(str(orderTime)))
-                self.outStandingTableWidget.setItem(index, 8, QTableWidgetItem(str(currentPrice)))
+                self.outstandingTableWidget.setItem(index, 0, QTableWidgetItem(str(itemCode)))
+                self.outstandingTableWidget.setItem(index, 1, QTableWidgetItem(str(itemName)))
+                self.outstandingTableWidget.setItem(index, 2, QTableWidgetItem(str(orderNumber)))
+                self.outstandingTableWidget.setItem(index, 3, QTableWidgetItem(str(orderVolume)))
+                self.outstandingTableWidget.setItem(index, 4, QTableWidgetItem(str(orderPrice)))
+                self.outstandingTableWidget.setItem(index, 5, QTableWidgetItem(str(outStandingVolume)))
+                self.outstandingTableWidget.setItem(index, 6, QTableWidgetItem(str(tradeGubun)))
+                self.outstandingTableWidget.setItem(index, 7, QTableWidgetItem(str(orderTime)))
+                self.outstandingTableWidget.setItem(index, 8, QTableWidgetItem(str(currentPrice)))
 
-
+        # 잔고처리
 
 
     def itemBuy(self):
@@ -382,6 +414,8 @@ class MyBot(QMainWindow, form_class):
 
         self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
                                 ["주식주문", "6700", acc, orderType, code, amount, price, hogaGb, orderNumber])
+        print("정정 주문 확인")
+
     def itemCancel(self):
 
         acc = self.accComboBox.currentText().strip(" ")
