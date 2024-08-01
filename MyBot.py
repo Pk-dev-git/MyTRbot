@@ -218,7 +218,7 @@ class MyBot(QMainWindow, form_class):
                 orderNumber = self.kiwoom.dynamicCall("GetChejanData(int)", 9203).strip(" ")
                 orderPrice = self.kiwoom.dynamicCall("GetChejanData(int)", 901).strip(" ")
                 orderVolume = self.kiwoom.dynamicCall("GetChejanData(int)", 900).strip(" ")
-                outStandingVolume = self.kiwoom.dynamicCall("GetChejanData(int)", 902).strip(" ")
+                outStandingVolume = int(self.kiwoom.dynamicCall("GetChejanData(int)", 902).strip(" "))
                 tradeGubun = self.kiwoom.dynamicCall("GetChejanData(int)", 905).strip(" ").strip("+").strip("-")
                 orderTime = self.kiwoom.dynamicCall("GetChejanData(int)", 908).strip(" ")
                 currentPrice = self.kiwoom.dynamicCall("GetChejanData(int)", 10).strip(" ")
@@ -286,7 +286,7 @@ class MyBot(QMainWindow, form_class):
                             break
 
                 #취소시 주문 삭제
-                if outStandingVolume == 0 :
+                if outStandingVolume == "0" :
                     for itemIndex in range(len(self.myModel.outstandingBalanceList)):
                         if self.myModel.outstandingBalanceList[itemIndex].orderNumber == orderNumber :
                             del self.myModel.outstandingBalanceList[itemIndex]
@@ -316,7 +316,77 @@ class MyBot(QMainWindow, form_class):
                 self.outstandingTableWidget.setItem(index, 7, QTableWidgetItem(str(orderTime)))
                 self.outstandingTableWidget.setItem(index, 8, QTableWidgetItem(str(currentPrice)))
 
-        # 잔고처리
+        # 잔고데이터
+        if sGubun == "1":
+            itemCode = self.kiwoom.dynamicCall("GetChejanData(int)", 9001).strip(" ").strip("A")
+            itemName = self.kiwoom.dynamicCall("GetChejanData(int)", 302).strip(" ")
+            amount = self.kiwoom.dynamicCall("GetChejanData(int)", 930).strip(" ")
+            buyingPrice = self.kiwoom.dynamicCall("GetChejanData(int)", 931).strip(" ")
+            currentPrice = abs(int(self.kiwoom.dynamicCall("GetChejanData(int)", 10)))
+            estimateProfit = (currentPrice - int(buyingPrice)) * int(amount)
+
+            if buyingPrice != "0":
+                profitRate = estimateProfit / (int(buyingPrice)*amount) * 100
+            else :
+                profitRate = 0
+
+            check = 0
+            for item in self.myModel.stockBalanceList:
+                if item.itemName.strip(" ") == itemName.strip(" ") :
+                    check = 1
+                    if amount == "0":
+                        for rowIndex in range(self.stocklistTableWidget.rowCount()):
+                            if self.stocklistTableWidget.item(rowIndex, 0).text() == itemCode:
+                                self.stocklistTableWidget.removeRow(rowIndex)
+                                break
+                        self.myModel.stockBalanceList.remove(item)
+                        break
+
+                    #데이터 Update
+                    item.amount = amount
+                    item.buyingPrice = buyingPrice
+                    item.currentPrice = currentPrice
+                    item.estimateProfit = estimateProfit
+                    item.profitRate = profitRate
+
+                    #테이블 Update
+                    for rowIndex in range(self.myModel.stockBalanceList):
+                        if self.stocklistTableWidget.item(rowIndex, 0).text().strip(" ") == itemCode:
+                            self.stocklistTableWidget.setItem(rowIndex, 0, QTableWidgetItem(str(itemCode)))
+                            self.stocklistTableWidget.setItem(rowIndex, 1, QTableWidgetItem(str(itemName)))
+                            self.stocklistTableWidget.setItem(rowIndex, 2, QTableWidgetItem(str(amount)))
+                            self.stocklistTableWidget.setItem(rowIndex, 3, QTableWidgetItem(str(buyingPrice)))
+                            self.stocklistTableWidget.setItem(rowIndex, 4, QTableWidgetItem(str(currentPrice)))
+                            self.stocklistTableWidget.setItem(rowIndex, 5, QTableWidgetItem(str(estimateProfit)))
+                            self.stocklistTableWidget.setItem(rowIndex, 6, QTableWidgetItem(str(profitRate)))
+                            break
+
+            if check == 0 :
+                if amount == "0":
+                    for rowIndex in range(self.stocklistTableWidget.rowCount()):
+                        if self.stocklistTableWidget.item(rowIndex, 0).text().strip(" ") == itemCode:
+                            self.stocklistTableWidget.removeRow(rowIndex)
+                            break
+
+                    for item in self.myModel.stockBalanceList:
+                        if item.itemCode.strip(" ") == itemName.strip(" ") :
+                            self.myModel.stockBalanceList.remove(item)
+                            break
+                    return
+
+                stockBalance = dm.DataModel.StockBalance(itemCode, itemName, amount, buyingPrice, currentPrice, estimateProfit, profitRate)
+                self.myModel.stockBalanceList.append(stockBalance)
+
+                self.stocklistTableWidget.setRowCount(self.stocklistTableWidget.rowCount() + 1)
+                index = self.stocklistTableWidget.rowCount() - 1
+
+                self.stocklistTableWidget.setItem(index, 0, QTableWidgetItem(str(itemCode)))
+                self.stocklistTableWidget.setItem(index, 1, QTableWidgetItem(str(itemName)))
+                self.stocklistTableWidget.setItem(index, 2, QTableWidgetItem(str(amount)))
+                self.stocklistTableWidget.setItem(index, 3, QTableWidgetItem(str(buyingPrice)))
+                self.stocklistTableWidget.setItem(index, 4, QTableWidgetItem(str(currentPrice)))
+                self.stocklistTableWidget.setItem(index, 5, QTableWidgetItem(str(estimateProfit)))
+                self.stocklistTableWidget.setItem(index, 6, QTableWidgetItem(str(profitRate)))
 
 
     def itemBuy(self):
