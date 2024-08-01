@@ -4,6 +4,13 @@ from PyQt5.QtGui import *
 from PyQt5 import uic
 from PyQt5.QAxContainer import *
 
+#차트 생성 라이브러리
+import matplotlib.pyplot as plt
+import mpl_finance as matfin
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FiqureCanvas
+import matplotlib.gridspec as gridspec
+import matplotlib.ticker as ticker
+
 import dataModel as dm
 
 form_class = uic.loadUiType('main_window.ui')[0]
