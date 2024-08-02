@@ -11,10 +11,18 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FiqureCanvas
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 
+import datetime
+from datetime import date
+
+import time
+from time import strftime
+
+
+
+
 import dataModel as dm
 
 form_class = uic.loadUiType('main_window.ui')[0]
-
 
 class MyBot(QMainWindow, form_class):
     # 생성자
@@ -38,6 +46,7 @@ class MyBot(QMainWindow, form_class):
         self.stocklistTableWidget.itemSelectionChanged.connect(self.selectStockListOrder)
         self.changePushButton.clicked.connect(self.itemCorrect)
         self.cancelPushButton.clicked.connect(self.itemCancel)
+        self.charPushButton.clicked.connect(self.chartShow)
 
     def setUI(self):
         # 반드시 pyqt 실행시 필요한 메소드
@@ -55,6 +64,11 @@ class MyBot(QMainWindow, form_class):
                         "매수정정", "매도정정" ]
 
         self.tradeGubunComboBox.addItems(column_head)
+
+        #차트생성
+        self.fig = plt.figure(figsize = (8,5))
+        self.canvas = FiqureCanvas(self.fig)
+        self.chartLayout.addWidget(self.canvas)
 
     def login(self):
         self.kiwoom.dynamicCall("CommConnect()")
@@ -112,6 +126,7 @@ class MyBot(QMainWindow, form_class):
                 if item.itemName == itemName:
                     self.itemCodeTextEdit.setPlainText(item.itemCode)
                     self.getitemInfo(item.itemCode)
+                    self.drawDayChart(item.itemCode)
 
     def getitemInfo(self, code):
         # 종목 정보 TRData
@@ -215,6 +230,63 @@ class MyBot(QMainWindow, form_class):
                     self.outstandingTableWidget.setItem(index, 6, QTableWidgetItem(str(tradeGubun)))
                     self.outstandingTableWidget.setItem(index, 7, QTableWidgetItem(str(orderTime)))
                     self.outstandingTableWidget.setItem(index, 8, QTableWidgetItem(str(currentPrice)))
+        elif sTrCode == "opt10081":
+            if sRQName == "주식일봉차트조회요청":
+                rowCount = self.kiwoom.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
+
+                dateList = []
+                openPrice = []
+                closePrice = []
+                highPrice = []
+                lowPrice = []
+                volume = []
+
+                if self.candlenumberTextEdit.toPlainText() != None and self.candlenumberTextEdit.toPlainText() != "":
+                    candlenumber = int(self.candlenumberTextEdit.toPlainText())
+                else :
+                    candlenumber = 60
+
+                if candlenumber > rowCount :
+                    candlenumber = rowCount
+
+                for index in range(candlenumber):
+                    m_date = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "일자").strip(" ")
+                    m_newDate = datetime.datetime(int(m_date[0:4]), int(m_date[4:6]), int(m_date[6:8]))
+                    m_openPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "시가").strip(" ")))
+                    m_closePrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "현재가").strip(" ")))
+                    m_highPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "고가").strip(" ")))
+                    m_lowPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "저가").strip(" ")))
+                    m_volume = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "거래량").strip(" "))
+
+                    dateList.insert(0, m_newDate)
+                    openPrice.insert(0, m_openPrice)
+                    closePrice.insert(0, m_closePrice)
+                    highPrice.insert(0, m_highPrice)
+                    lowPrice.insert(0, m_lowPrice)
+                    volume.insert(0, m_volume)
+
+                dayList = []
+                nameList = []
+
+                for i, day in enumerate(dateList):
+                    if day.weekday() == 0:
+                        dayList.append(i)
+                        nameList.append(str(day.strftime("%Y-%m-%d")))
+
+                gs = gridspec.GridSpec(2, 1 , height_ratios=[3,1])
+                axes = []
+                axes.append(plt.subplot(gs[0]))
+                axes.append(plt.subplot(gs[1], sharex=axes[0]))
+                axes[0].get_xaxis().set_visible(False)
+
+                axes[1].set_xticks(dayList)
+                axes[1].set_xticklabels(nameList, rotation=45)
+
+                matfin.candlestick2_ochl(axes[0], openPrice, closePrice, highPrice, lowPrice, width=0.5, colorup='r', colordown='b')
+                axes[1].bar(range(len(dateList)), volume, color='k', width=0.6, align='center')
+                plt.tight_layout()
+
+                self.canvas.draw()
 
     def receive_chejanData(self, sGubun, nItemCnt, sFIdList):
         if sGubun == "0" : # 접수 & 체결
@@ -456,7 +528,7 @@ class MyBot(QMainWindow, form_class):
                         self.orderNumberTextEdit.setText(self.outstandingTableWidget.item(rowIndex, 2).text())
                         index = self.tradeGubunComboBox.findText(self.outstandingTableWidget.item(rowIndex, 6).text())
                         self.tradeGubunComboBox.setCurrentIndex(index)
-
+                        self.drawDayChart(self.outstandingTableWidget.item(rowIndex, 0).text())
             if check == 1:
                 break
 
@@ -471,6 +543,8 @@ class MyBot(QMainWindow, form_class):
                         self.itemCodeTextEdit.setText(self.stocklistTableWidget.item(rowIndex, 0).text())
                         self.volumeSpinBox.setValue(int(self.stocklistTableWidget.item(rowIndex, 2).text()))
                         self.priceSpinBox.setValue(int(self.stocklistTableWidget.item(rowIndex, 3).text()))
+                        self.drawDayChart(self.stocklistTableWidget.item(rowIndex, 0).text())
+                        break
             if check == 1:
                 break
 
@@ -511,6 +585,22 @@ class MyBot(QMainWindow, form_class):
         self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
                                 ["주식주문", "6800", acc, orderType, code, amount, price, hogaGb, orderNumber])
 
+
+    def drawDayChart(self, itemCode):
+        #차트 그리기
+        now = datetime.datetime.now()
+        nowDate = now.strftime("%Y%m%d") #YYYYMMDD
+        # opt10081 데이터 요청
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", itemCode)
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "기준일자", nowDate)
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "수정주가구분", "1")
+
+        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "주식일봉차트조회요청", "opt10081", 0, "5300")
+
+    def chartShow(self):
+        if self.itemCodeTextEdit.toPlainText() != None and self.itemCodeTextEdit.toPlainText() != "":
+            code = self.itemCodeTextEdit.toPlainText().strip(" ")
+            self.drawDayChart(code)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
