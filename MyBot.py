@@ -568,7 +568,6 @@ class MyBot(QMainWindow, form_class):
         print("정정 주문 확인")
 
     def itemCancel(self):
-
         acc = self.accComboBox.currentText().strip(" ")
         code = self.itemCodeTextEdit.toPlainText().strip(" ")
         amount = int(self.volumeSpinBox.value())
@@ -587,6 +586,7 @@ class MyBot(QMainWindow, form_class):
 
 
     def drawDayChart(self, itemCode):
+
         #차트 그리기
         now = datetime.datetime.now()
         nowDate = now.strftime("%Y%m%d") #YYYYMMDD
@@ -598,6 +598,7 @@ class MyBot(QMainWindow, form_class):
         self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "주식일봉차트조회요청", "opt10081", 0, "5300")
 
     def chartShow(self):
+        #차트 조회 함수
         if self.itemCodeTextEdit.toPlainText() != None and self.itemCodeTextEdit.toPlainText() != "":
             code = self.itemCodeTextEdit.toPlainText().strip(" ")
             self.drawDayChart(code)
