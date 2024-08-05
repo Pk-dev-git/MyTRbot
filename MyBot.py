@@ -37,6 +37,7 @@ class MyBot(QMainWindow, form_class):
         self.kiwoom.OnEventConnect.connect(self.event_connect)
         self.kiwoom.OnReceiveTrData.connect(self.receive_trData)
         self.kiwoom.OnReceiveChejanData.connect(self.receive_chejanData)
+        self.kiwoom.OnReceiveConditionVer.connect(self.receive_condition)
 
         #Ui_Trigger
         self.searchItemButton.clicked.connect(self.searchItem)
@@ -47,6 +48,10 @@ class MyBot(QMainWindow, form_class):
         self.changePushButton.clicked.connect(self.itemCorrect)
         self.cancelPushButton.clicked.connect(self.itemCancel)
         self.charPushButton.clicked.connect(self.chartShow)
+        self.addAutoTradePushButton.clicked.connect(self.addAutoTradeCondition)
+        self.removeAutoTradePushButton.clicked.connect(self.removeAutoTradeCondition)
+
+
 
     def setUI(self):
         # 반드시 pyqt 실행시 필요한 메소드
@@ -59,6 +64,9 @@ class MyBot(QMainWindow, form_class):
                         "61 : 장전시간외종가","62 : 시간외단일가매매","81 : 장후시간외종가"]
 
         self.gubunComboBox.addItems(column_head)
+
+        column_head = ["매수", "매도", "매수/매도"]
+        self.autoTradeGubunComboBox.addItems(column_head)
 
         column_head = [ "매수", "매도", "매수취소", "매도취소",
                         "매수정정", "매도정정" ]
@@ -80,6 +88,7 @@ class MyBot(QMainWindow, form_class):
             self.get_login_info()
             self.getItemList()
             self.getMyAccount()
+            self.getCoditionList()
         elif nErrcode == -100:
             print("사용자 정보교환 실패")
         elif nErrcode == -101:
@@ -103,6 +112,13 @@ class MyBot(QMainWindow, form_class):
 
         self.statusbar.showMessage(serverGubun)
         self.accComboBox.addItems(accList)
+
+    def getCoditionList(self):
+        if self.kiwoom.dynamicCall("GetConditionLoad()") == 1:
+            print("조건식 목록 호출 성공")
+        else:
+            print("조건식 목록 호출 실패")
+            return
 
     def getItemList(self):
         # 종목코드 리스트 생성
@@ -467,6 +483,31 @@ class MyBot(QMainWindow, form_class):
                 self.stocklistTableWidget.setItem(index, 5, QTableWidgetItem(str(estimateProfit)))
                 self.stocklistTableWidget.setItem(index, 6, QTableWidgetItem(str(profitRate)))
 
+    def receive_condition(self, lRet, sMsg):
+        #조건목록 검색 이벤트 함수
+        if lRet == 1: #호출 성공
+            conditionListTotal = self.kiwoom.dynamicCall("GetConditionNameList()").split(";")
+            conditionListTotal.pop()
+            conditionList = {}
+            conditionList["code"]=[]
+            conditionList["name"]=[]
+
+            for condition in conditionListTotal:
+                temp = condition.split("^")
+                conditionList["code"].append(temp[0])
+                conditionList["name"].append(temp[1])
+
+            column_head = ["조건코드", "조건명"]
+            colCount = len(column_head)
+            rowCount = len(conditionListTotal)
+
+            self.conditionTableWidget.setColumnCount(colCount)
+            self.conditionTableWidget.setRowCount(rowCount)
+            self.conditionTableWidget.setHorizontalHeaderLabels(column_head)
+
+            for index in range(rowCount):
+                self.conditionTableWidget.setItem(index, 0, QTableWidgetItem(str(conditionList["code"][index])))
+                self.conditionTableWidget.setItem(index, 1, QTableWidgetItem(str(conditionList["name"][index])))
 
     def itemBuy(self):
         #매수 함수
@@ -602,6 +643,58 @@ class MyBot(QMainWindow, form_class):
         if self.itemCodeTextEdit.toPlainText() != None and self.itemCodeTextEdit.toPlainText() != "":
             code = self.itemCodeTextEdit.toPlainText().strip(" ")
             self.drawDayChart(code)
+
+
+    def addAutoTradeCondition(self):
+        #조건식 추가 함수
+        check = 0
+        for rowIndex in range(self.conditionTableWidget.rowCount()):
+            for colIndex in range(self.conditionTableWidget.columnCount()):
+                if self.conditionTableWidget.item(rowIndex, colIndex).isSelected() == True:
+                    check = 1
+                    code = self.conditionTableWidget.item(rowIndex, 0).text()
+                    name = self.conditionTableWidget.item(rowIndex, 1).text()
+                    break
+
+            if check == 1:
+                break
+
+        autoTradeCondition = dm.DataModel.AutoTradeCoditionInfo(self.startTimeEdit.time(), self.endTimeEdit.time(), code, name, self.autoTradeGubunComboBox.currentText())
+        self.myModel.autoTradeCoditionList.append(autoTradeCondition)
+
+        self.updateAutoTradeeCodtionTable()
+
+    def removeAutoTradeCondition(self):
+        #조건식 제거 함수
+        pass
+
+    def updateAutoTradeeCodtionTable(self):
+        column_head = ["시작시간", "종료시간", "조건식번호", "조건식이름", "자동매매상태"]
+
+        colCount = len(column_head)
+        rowcount = len(self.myModel.autoTradeCoditionList)
+
+        self.autoTradeconditionTableWidget.setColumnCount(colCount)
+        self.autoTradeconditionTableWidget.setRowCount(rowcount)
+
+        self.autoTradeconditionTableWidget.setHorizontalHeaderLabels(column_head)
+
+        for index in range(rowcount):
+            self.autoTradeconditionTableWidget.setItem(index, 0, QTableWidgetItem(str(self.myModel.autoTradeCoditionList[index].startTime.toString())))
+            self.autoTradeconditionTableWidget.setItem(index, 1, QTableWidgetItem(str(self.myModel.autoTradeCoditionList[index].endTime.toString())))
+            self.autoTradeconditionTableWidget.setItem(index, 2, QTableWidgetItem(str(self.myModel.autoTradeCoditionList[index].code)))
+            self.autoTradeconditionTableWidget.setItem(index, 3, QTableWidgetItem(str(self.myModel.autoTradeCoditionList[index].name)))
+            self.autoTradeconditionTableWidget.setItem(index, 4, QTableWidgetItem(str(self.myModel.autoTradeCoditionList[index].autoTradeGubun)))
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -1,8 +1,9 @@
 class DataModel:
     def __init__(self):
-        self.itemList=[]
-        self.stockBalanceList= []
-        self.outstandingBalanceList=[]
+        self.itemList = []
+        self.stockBalanceList = []
+        self.outstandingBalanceList = []
+        self.autoTradeCoditionList = []
 
     class ItemInfo:
         def __init__(self, itemCode, itemName):
@@ -31,6 +32,12 @@ class DataModel:
             self.orderTime = orderTime
             self.currentPrice = currentPrice
 
-
+    class AutoTradeCoditionInfo:
+        def __init__(self, startTime, endTime, code, name, autoTradeGubun):
+            self.startTime = startTime
+            self.endTime = endTime
+            self.code = code
+            self.name = name
+            self.autoTradeGubun = autoTradeGubun
 
 
