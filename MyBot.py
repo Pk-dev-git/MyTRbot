@@ -38,6 +38,7 @@ class MyBot(QMainWindow, form_class):
         self.kiwoom.OnReceiveTrData.connect(self.receive_trData)
         self.kiwoom.OnReceiveChejanData.connect(self.receive_chejanData)
         self.kiwoom.OnReceiveConditionVer.connect(self.receive_condition)
+        self.kiwoom.OnReceiveTrCondition.connect(self.receive_trCondition)
 
         #Ui_Trigger
         self.searchItemButton.clicked.connect(self.searchItem)
@@ -50,7 +51,10 @@ class MyBot(QMainWindow, form_class):
         self.charPushButton.clicked.connect(self.chartShow)
         self.addAutoTradePushButton.clicked.connect(self.addAutoTradeCondition)
         self.removeAutoTradePushButton.clicked.connect(self.removeAutoTradeCondition)
+        self.conditionSearchPushButton.clicked.connect(self.conditionSearch)
 
+        #조건검색 시작 유무 변수
+        self.boolCondition = 0
 
 
     def setUI(self):
@@ -303,6 +307,9 @@ class MyBot(QMainWindow, form_class):
                 plt.tight_layout()
 
                 self.canvas.draw()
+        elif sTrCode == "OPTKWFID":
+            pass
+            #데이터를 가져와서 conditionItemTableWidget 테이블에 뿌려준다
 
     def receive_chejanData(self, sGubun, nItemCnt, sFIdList):
         if sGubun == "0" : # 접수 & 체결
@@ -666,7 +673,18 @@ class MyBot(QMainWindow, form_class):
 
     def removeAutoTradeCondition(self):
         #조건식 제거 함수
-        pass
+        print("remove Auto trade condition")
+        check = 0
+        for rowIndex in range(self.autoTradeconditionTableWidget.rowCount()):
+            for colIndex in range(self.autoTradeconditionTableWidget.columnCount()):
+                if self.autoTradeconditionTableWidget.item(rowIndex, colIndex).isSelected() == True:
+                    check = 1
+                    del self.myModel.autoTradeCoditionList[rowIndex]
+                    break
+            if check == 1 :
+                break
+
+        self.updateAutoTradeeCodtionTable()
 
     def updateAutoTradeeCodtionTable(self):
         column_head = ["시작시간", "종료시간", "조건식번호", "조건식이름", "자동매매상태"]
@@ -687,10 +705,39 @@ class MyBot(QMainWindow, form_class):
             self.autoTradeconditionTableWidget.setItem(index, 4, QTableWidgetItem(str(self.myModel.autoTradeCoditionList[index].autoTradeGubun)))
 
 
+    def conditionSearch(self):
+        # 조건 검색 버튼 클릭시
+        if self.boolCondition == 0 :
+        # 처음 버튼 확인후 라벨 변경 (시작 -> 종료)
+            self.conditionSearchPushButton.setText("조건검색종료")
+            self.boolCondition = 1
+        else :
+        # 시작 상태 체크 후 (종료 -> 시작)
+            self.conditionSearchPushButton.setText("조건검색시작")
+            self.boolCondition = 0
+
+        for rowIndex in range(self.autoTradeconditionTableWidget.rowCount()):
+            # code =
+            # name =
+
+            # 조건 검색 시작시
+            # if self.boolCondition = 1
+            # lRet = SendCondition 함수 호출 -> OnReceiveTrCondition이벤트 발생 -> CommKwRqData() 함수를 통해관심종목데이터(OPTKWFID)tr 목록
+            # 화면번호 기준으로 종목 (7000 + rowIndex * 100)
+            # lRet == 1
+            # mymodel condtion list add
+            # lRet == 0
+
+
+            # if self.boolCondition = 0
+            # SendConditionStop 함수 호출
+            # 화면번호 기준으로 종목 (7000 + rowIndex * 100)
 
 
 
-
+    def receive_trCondition(self, sScrNo, strCodeList, strConditionName, nIndex, nNext):
+        pass
+        #CommKwRqData()호출 작업 ->
 
 
 

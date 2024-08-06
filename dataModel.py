@@ -4,6 +4,7 @@ class DataModel:
         self.stockBalanceList = []
         self.outstandingBalanceList = []
         self.autoTradeCoditionList = []
+        self.conditionItemList = {}
 
     class ItemInfo:
         def __init__(self, itemCode, itemName):
@@ -39,5 +40,21 @@ class DataModel:
             self.code = code
             self.name = name
             self.autoTradeGubun = autoTradeGubun
+
+    class CondtionItemInfo:
+        def __init__(self, itemCode, itemName, currentPrice, fluctuationRate, priceDiffYes, volume, openPrice, highPrice, lowPrice, buyStatus, sellStatus, sRQName):
+            self.itemCode = itemCode
+            self.itemName = itemName
+            self.currentPrice = currentPrice
+            self.fluctuationRate = fluctuationRate
+            self.priceDiffYes = priceDiffYes
+            self.volume = volume
+            self.openPrice = openPrice
+            self.highPrice = highPrice
+            self.lowPrice = lowPrice
+            self.buyStatus = buyStatus
+            self.sellStatus = sellStatus
+            self.sRQName = sRQName
+
 
 
