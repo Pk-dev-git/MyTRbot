@@ -308,8 +308,73 @@ class MyBot(QMainWindow, form_class):
 
                 self.canvas.draw()
         elif sTrCode == "OPTKWFID":
-            pass
-            #데이터를 가져와서 conditionItemTableWidget 테이블에 뿌려준다
+            if sScrNo == "8000":
+                if self.conditionItemTableWidget.rowCount() == None or self.conditionItemTableWidget.rowCount() == 0 :
+                    # 데이터가 없을경우
+                    column_head = ["종목번호", "종목명", "현재가", "등락률",
+                               "전일대비", "거래량", "시가", "고가", "저가", "조건식명"]
+
+                    colCount = len(column_head)
+                    rowCount = self.kiwoom.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
+
+                    self.conditionItemTableWidget.setColumnCount(colCount)
+                    self.conditionItemTableWidget.setRowCount(rowCount)
+                    self.conditionItemTableWidget.setHorizontalHeaderLabels(column_head)
+
+                    for index in range(rowCount):
+                        itemCode = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목코드").strip(" ")
+                        itemName = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목명").strip(" ")
+                        currentPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "현재가").strip(" ")))
+                        fluctuationRate = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "등락율").strip(" ")
+                        priceDiffYes = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "전일대비").strip(" ")
+                        volume = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "거래량").strip(" ")
+                        openPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "시가").strip(" ")))
+                        highPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "고가").strip(" ")))
+                        lowPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종가").strip(" ")))
+
+                        conditionItem = dm.DataModel.CondtionItemInfo(itemCode, itemName, currentPrice, fluctuationRate, priceDiffYes, volume, openPrice, highPrice, lowPrice, sRQName)
+                        self.myModel.conditionItemList[sRQName].append(conditionItem)
+
+                        self.conditionItemTableWidget.setItem(index, 0, QTableWidgetItem(str(itemCode)))
+                        self.conditionItemTableWidget.setItem(index, 1, QTableWidgetItem(str(itemName)))
+                        self.conditionItemTableWidget.setItem(index, 2, QTableWidgetItem(str(currentPrice)))
+                        self.conditionItemTableWidget.setItem(index, 3, QTableWidgetItem(str(fluctuationRate)))
+                        self.conditionItemTableWidget.setItem(index, 4, QTableWidgetItem(str(priceDiffYes)))
+                        self.conditionItemTableWidget.setItem(index, 5, QTableWidgetItem(str(volume)))
+                        self.conditionItemTableWidget.setItem(index, 6, QTableWidgetItem(str(openPrice)))
+                        self.conditionItemTableWidget.setItem(index, 7, QTableWidgetItem(str(highPrice)))
+                        self.conditionItemTableWidget.setItem(index, 8, QTableWidgetItem(str(lowPrice)))
+                        self.conditionItemTableWidget.setItem(index, 9, QTableWidgetItem(str(sRQName)))
+                else:
+                    rowCount = self.kiwoom.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
+                    rowIndex = self.conditionItemTableWidget.rowCount()
+                    self.conditionItemTableWidget.setRowCount(rowIndex + rowCount)
+
+                    for index in range(rowCount):
+                        itemCode = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목코드").strip(" ")
+                        itemName = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목명").strip(" ")
+                        currentPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName,index, "현재가").strip(" ")))
+                        fluctuationRate = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)",sTrCode, sRQName, index, "등락율").strip(" ")
+                        priceDiffYes = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "전일대비").strip(" ")
+                        volume = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "거래량").strip(" ")
+                        openPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "시가").strip(" ")))
+                        highPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "고가").strip(" ")))
+                        lowPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName,index, "종가").strip(" ")))
+
+                        conditionItem = dm.DataModel.CondtionItemInfo(itemCode, itemName, currentPrice, fluctuationRate, priceDiffYes, volume, openPrice, highPrice, lowPrice, sRQName)
+                        self.myModel.conditionItemList[sRQName].append(conditionItem)
+
+                        newIndex = rowIndex + index
+                        self.conditionItemTableWidget.setItem(newIndex, 0, QTableWidgetItem(str(itemCode)))
+                        self.conditionItemTableWidget.setItem(newIndex, 1, QTableWidgetItem(str(itemName)))
+                        self.conditionItemTableWidget.setItem(newIndex, 2, QTableWidgetItem(str(currentPrice)))
+                        self.conditionItemTableWidget.setItem(newIndex, 3, QTableWidgetItem(str(fluctuationRate)))
+                        self.conditionItemTableWidget.setItem(newIndex, 4, QTableWidgetItem(str(priceDiffYes)))
+                        self.conditionItemTableWidget.setItem(newIndex, 5, QTableWidgetItem(str(volume)))
+                        self.conditionItemTableWidget.setItem(newIndex, 6, QTableWidgetItem(str(openPrice)))
+                        self.conditionItemTableWidget.setItem(newIndex, 7, QTableWidgetItem(str(highPrice)))
+                        self.conditionItemTableWidget.setItem(newIndex, 8, QTableWidgetItem(str(lowPrice)))
+                        self.conditionItemTableWidget.setItem(newIndex, 9, QTableWidgetItem(str(sRQName)))
 
     def receive_chejanData(self, sGubun, nItemCnt, sFIdList):
         if sGubun == "0" : # 접수 & 체결
@@ -717,28 +782,39 @@ class MyBot(QMainWindow, form_class):
             self.boolCondition = 0
 
         for rowIndex in range(self.autoTradeconditionTableWidget.rowCount()):
-            # code =
-            # name =
+            code = self.autoTradeconditionTableWidget.item(rowIndex, 2).text().strip("")
+            name = self.autoTradeconditionTableWidget.item(rowIndex, 3).text().strip("")
 
             # 조건 검색 시작시
-            # if self.boolCondition = 1
-            # lRet = SendCondition 함수 호출 -> OnReceiveTrCondition이벤트 발생 -> CommKwRqData() 함수를 통해관심종목데이터(OPTKWFID)tr 목록
-            # 화면번호 기준으로 종목 (7000 + rowIndex * 100)
-            # lRet == 1
-            # mymodel condtion list add
-            # lRet == 0
+            if self.boolCondition == 1:
+                # 화면번호 기준으로 종목 (7000 + rowIndex * 100)
+                sCrNo = 7000 + rowIndex * 100
+                # lRet = SendCondition 함수 호출 -> OnReceiveTrCondition이벤트 발생 -> CommKwRqData() 함수를 통해관심종목데이터(OPTKWFID)tr 목록
+                ret = self.kiwoom.dynamicCall("SendCondition(QString, QString, int, int)", str(sCrNo), name, code, 1)
 
+                if ret == 1 :
+                    print("조건검색정보요청 성공 -", name)
+                    # mymodel condtion list add
+                    self.myModel.conditionItemList[name]=[]
+                else :
+                    print("조건검색정보요청 실패 -", name)
+            elif self.boolCondition == 0 :
+                # 화면번호 기준으로 종목 (7000 + rowIndex * 100)
+                sCrNo = 7000 + rowIndex * 100
+                # SendConditionStop 함수 호출
+                self.kiwoom.dynamicCall("SendConditionStop(QString, QString, int)", str(sCrNo), name, code)
+                print("조건검색종료-", name)
 
-            # if self.boolCondition = 0
-            # SendConditionStop 함수 호출
-            # 화면번호 기준으로 종목 (7000 + rowIndex * 100)
-
-
+            time.sleep(0.5)
 
     def receive_trCondition(self, sScrNo, strCodeList, strConditionName, nIndex, nNext):
-        pass
-        #CommKwRqData()호출 작업 ->
+        # 조건검색식 이벤트 함수
+        condtionName = strConditionName
+        codeList = strCodeList.split(";")
+        codeList.pop()
 
+        # CommKwRqData()호출 작업
+        self.kiwoom.dynamicCall("CommKwRqData(QString, bool, int, int, QString, QString)", strCodeList, nNext, len(codeList), 0, condtionName, "8000")
 
 
 

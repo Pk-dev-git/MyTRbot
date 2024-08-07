@@ -42,7 +42,7 @@ class DataModel:
             self.autoTradeGubun = autoTradeGubun
 
     class CondtionItemInfo:
-        def __init__(self, itemCode, itemName, currentPrice, fluctuationRate, priceDiffYes, volume, openPrice, highPrice, lowPrice, buyStatus, sellStatus, sRQName):
+        def __init__(self, itemCode, itemName, currentPrice, fluctuationRate, priceDiffYes, volume, openPrice, highPrice, lowPrice, sRQName):
             self.itemCode = itemCode
             self.itemName = itemName
             self.currentPrice = currentPrice
@@ -52,8 +52,6 @@ class DataModel:
             self.openPrice = openPrice
             self.highPrice = highPrice
             self.lowPrice = lowPrice
-            self.buyStatus = buyStatus
-            self.sellStatus = sellStatus
             self.sRQName = sRQName
 
 
