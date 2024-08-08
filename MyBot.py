@@ -39,6 +39,7 @@ class MyBot(QMainWindow, form_class):
         self.kiwoom.OnReceiveChejanData.connect(self.receive_chejanData)
         self.kiwoom.OnReceiveConditionVer.connect(self.receive_condition)
         self.kiwoom.OnReceiveTrCondition.connect(self.receive_trCondition)
+        self.kiwoom.OnReceiveRealCondition.connect(self.receive_realCondition)
 
         #Ui_Trigger
         self.searchItemButton.clicked.connect(self.searchItem)
@@ -52,9 +53,13 @@ class MyBot(QMainWindow, form_class):
         self.addAutoTradePushButton.clicked.connect(self.addAutoTradeCondition)
         self.removeAutoTradePushButton.clicked.connect(self.removeAutoTradeCondition)
         self.conditionSearchPushButton.clicked.connect(self.conditionSearch)
+        self.autoTradePushButton.clicked.connect(self.autoTrade)
 
         #조건검색 시작 유무 변수
         self.boolCondition = 0
+        #자동매매 시작 유무 변수
+        self.boolAutoTrade = 0
+        self.screenNumber = 9000
 
 
     def setUI(self):
@@ -68,6 +73,8 @@ class MyBot(QMainWindow, form_class):
                         "61 : 장전시간외종가","62 : 시간외단일가매매","81 : 장후시간외종가"]
 
         self.gubunComboBox.addItems(column_head)
+
+        self.realGubunComboBox.addItems(column_head)
 
         column_head = ["매수", "매도", "매수/매도"]
         self.autoTradeGubunComboBox.addItems(column_head)
@@ -160,6 +167,77 @@ class MyBot(QMainWindow, form_class):
                 #현재가
                 currentPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "현재가")))
                 self.priceSpinBox.setValue(currentPrice)
+            else :
+                # 조건식에 따라 편입된 종목 매수/매도
+                itemCode = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "종목코드").strip(" ")
+                itemName = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "종목명").strip(" ")
+                currentPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0,"현재가").strip(" ")))
+                fluctuationRate = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode,sRQName, 0, "등락율").strip(" ")
+                priceDiffYes = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName,0, "전일대비").strip(" ")
+                volume = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0,"거래량").strip(" ")
+                openPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0,"시가").strip(" ")))
+                highPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0,"고가").strip(" ")))
+                lowPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0,"저가").strip(" ")))
+
+                check = 0
+
+                for item in self.myModel.stockBalanceList:
+                    if item.itemCode.strip(" ") ==  itemCode:
+                        check = 1
+                        if sRQName.strip(" ") == "프로그램추가매수식":
+                            pass #추가매수 진행
+                            #if self.boolAutoTrade == 1:
+                            #매입가의 4프로 이하일경우 매수 실시
+                            #수량, 가격, 구분 매수 실행할수 있다.
+                            #수량 : 가격 / 현재가 예시) 10000 / 1000 10개
+
+                        elif sRQName.strip(" ") == "프로그램전량매도식":
+                            pass #매도진행
+                            #if self.boolAutoTrade == 1:
+
+                if check == 0 :
+                    # 신규매수
+                    num = 0
+                    for codition in self.myModel.conditionItemList:
+                        for item in self.myModel.conditionItemList[codition]:
+                            if item.itemCode.strip(" ") == itemCode:
+                                num = 1
+                                print("조건식 종목이 있습니다.-", itemCode)
+                                break
+                        if num == 1 :
+                            break
+
+                    if num == 0 :
+                        conditionItem = dm.DataModel.CondtionItemInfo(itemCode, itemName, currentPrice, fluctuationRate, priceDiffYes, volume, openPrice, highPrice, lowPrice, sRQName)
+                        self.myModel.conditionItemList[sRQName].append(conditionItem)
+
+                        #조건식 종목 테이블 업데이트 작업
+                        self.conditionTableModify(itemCode)
+
+                        if self.boolAutoTrade == 1:
+                            #신규매수
+                            acc = self.accComboBox.currentText()
+                            amount = self.enabledMoneyTextEdit.toPlainText() / currentPrice
+                            price = currentPrice
+                            hogaGb = self.realGubunComboBox.currentText()[0:2]
+                            if hogaGb == "03" :
+                                price = 0
+
+                            self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)", ["주식주문", "6000", acc, 1, itemCode, amount, price, hogaGb, ""])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         elif sTrCode == "opw00018":
             if sRQName == "계좌잔고평가내역":
                 column_head = ["종목번호", "종목명", "보유수량", "매입가", "현재가", "평가손익", "수익률(%)"]
@@ -330,7 +408,7 @@ class MyBot(QMainWindow, form_class):
                         volume = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "거래량").strip(" ")
                         openPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "시가").strip(" ")))
                         highPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "고가").strip(" ")))
-                        lowPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종가").strip(" ")))
+                        lowPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "저가").strip(" ")))
 
                         conditionItem = dm.DataModel.CondtionItemInfo(itemCode, itemName, currentPrice, fluctuationRate, priceDiffYes, volume, openPrice, highPrice, lowPrice, sRQName)
                         self.myModel.conditionItemList[sRQName].append(conditionItem)
@@ -816,7 +894,39 @@ class MyBot(QMainWindow, form_class):
         # CommKwRqData()호출 작업
         self.kiwoom.dynamicCall("CommKwRqData(QString, bool, int, int, QString, QString)", strCodeList, nNext, len(codeList), 0, condtionName, "8000")
 
+    def receive_realCondition(self, strCode, strType, strConditionName, strConditionIndex):
+        if strType == "I":
+            # 종목 편입
+            print("종목 편입 - ", strConditionName)
+            self.screenNumber = self.screenNumber + 1
 
+            self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", strCode)
+            self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", strConditionName, "opt10001", 0, self.screenNumber)
+
+        elif strType == "D":
+            # 종목 이탈
+            print("종목 이탈 - ", strConditionName)
+
+    def conditionTableModify(self, code):
+        pass
+        # 조건식 종목 테이블 업데이트 작업
+        # 1. 조건식 테이블에 데이터가 없는 경우
+        # - head 생성 하고 테이블 작성
+        # 2. 기존의 종목이 있는 경우
+        # - 기존 종목 데이터를 현재 데이터로 Update
+        # 3. 기존의 종목이 없는 경우
+        # - 테이블에 추가 작업
+
+    def autoTrade(self):
+        # 조건 검색 버튼 클릭시
+        if self.boolAutoTrade == 0:
+            # 처음 버튼 확인후 라벨 변경 (시작 -> 종료)
+            self.autoTradePushButton.setText("자동매매종료")
+            self.boolAutoTrade = 1
+        else:
+            # 시작 상태 체크 후 (종료 -> 시작)
+            self.autoTradePushButton.setText("자동매매시작")
+            self.boolAutoTrade = 0
 
 
 if __name__ == '__main__':
