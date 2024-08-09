@@ -908,14 +908,84 @@ class MyBot(QMainWindow, form_class):
             print("종목 이탈 - ", strConditionName)
 
     def conditionTableModify(self, code):
-        pass
         # 조건식 종목 테이블 업데이트 작업
         # 1. 조건식 테이블에 데이터가 없는 경우
         # - head 생성 하고 테이블 작성
-        # 2. 기존의 종목이 있는 경우
-        # - 기존 종목 데이터를 현재 데이터로 Update
-        # 3. 기존의 종목이 없는 경우
-        # - 테이블에 추가 작업
+        if self.conditionItemTableWidget.rowCount() == 0 or self.conditionItemTableWidget.rowCount() == None:
+            column_head = ["종목번호", "종목명", "현재가", "등락률", "전일대비", "거래량", "시가", "고가", "저가", "조건식명"]
+            colCount = len(column_head)
+
+            self.conditionItemTableWidget.setColumnCount(colCount)
+            self.conditionItemTableWidget.setRowCount(1)
+            self.conditionItemTableWidget.setHorizontalHeaderLabels(column_head)
+            index = self.conditionItemTableWidget.rowCount() - 1
+
+            check = 0
+            for condition in self.myModel.conditionItemList:
+                for item in self.myModel.conditionItemList[condition]:
+                    if item.itemCode.strip(" ") == code.strip(" "):
+                        check = 1
+                        self.conditionItemTableWidget.setItem(index, 0, QTableWidgetItem(str(item.itemCode)))
+                        self.conditionItemTableWidget.setItem(index, 1, QTableWidgetItem(str(item.itemName)))
+                        self.conditionItemTableWidget.setItem(index, 2, QTableWidgetItem(str(item.currentPrice)))
+                        self.conditionItemTableWidget.setItem(index, 3, QTableWidgetItem(str(item.fluctuationRate)))
+                        self.conditionItemTableWidget.setItem(index, 4, QTableWidgetItem(str(item.priceDiffYes)))
+                        self.conditionItemTableWidget.setItem(index, 5, QTableWidgetItem(str(item.volume)))
+                        self.conditionItemTableWidget.setItem(index, 6, QTableWidgetItem(str(item.openPrice)))
+                        self.conditionItemTableWidget.setItem(index, 7, QTableWidgetItem(str(item.highPrice)))
+                        self.conditionItemTableWidget.setItem(index, 8, QTableWidgetItem(str(item.lowPrice)))
+                        self.conditionItemTableWidget.setItem(index, 9, QTableWidgetItem(str(item.sRQName)))
+                        break
+                if check == 1 :
+                    break
+        else:
+        # 2. 조건식 테이블에 데이터가 있는 경우
+        # - 기존 종목 데이터가 있는 경우 현재 데이터로 Update
+            check = 0
+            for itemIndex in range(self.conditionItemTableWidget.rowCount()):
+                if self.conditionItemTableWidget.item(itemIndex, 0).text().strip(" ") == code.strip(" "):
+                    check = 1
+                    check2 = 0
+                    for condition in self.myModel.conditionItemList:
+                        for item in self.myModel.conditionItemList[condition]:
+                            if item.itemCode.strip("") == code.strip(""):
+                                check2 = 1
+                                self.conditionItemTableWidget.setItem(itemIndex, 0, QTableWidgetItem(str(item.itemCode)))
+                                self.conditionItemTableWidget.setItem(itemIndex, 1, QTableWidgetItem(str(item.itemName)))
+                                self.conditionItemTableWidget.setItem(itemIndex, 2, QTableWidgetItem(str(item.currentPrice)))
+                                self.conditionItemTableWidget.setItem(itemIndex, 3, QTableWidgetItem(str(item.fluctuationRate)))
+                                self.conditionItemTableWidget.setItem(itemIndex, 4, QTableWidgetItem(str(item.priceDiffYes)))
+                                self.conditionItemTableWidget.setItem(itemIndex, 5, QTableWidgetItem(str(item.volume)))
+                                self.conditionItemTableWidget.setItem(itemIndex, 6, QTableWidgetItem(str(item.openPrice)))
+                                self.conditionItemTableWidget.setItem(itemIndex, 7, QTableWidgetItem(str(item.highPrice)))
+                                self.conditionItemTableWidget.setItem(itemIndex, 8, QTableWidgetItem(str(item.lowPrice)))
+                                self.conditionItemTableWidget.setItem(itemIndex, 9, QTableWidgetItem(str(item.sRQName)))
+                                break
+                        if check2 == 1 :
+                            break
+                    break
+        # - 기존 종목 데이터가 없는 경우 추가 add
+            if check == 0 :
+                self.conditionItemTableWidget.setRowCount(self.conditionItemTableWidget.rowCount() + 1)
+                index = self.conditionItemTableWidget.rowCount() - 1
+                check3 = 0
+                for condition in self.myModel.conditionItemList:
+                    for item in self.myModel.conditionItemList[condition]:
+                        if item.itemCode.strip("") == code.strip(""):
+                            check3 = 1
+                            self.conditionItemTableWidget.setItem(index, 0, QTableWidgetItem(str(item.itemCode)))
+                            self.conditionItemTableWidget.setItem(index, 1, QTableWidgetItem(str(item.itemName)))
+                            self.conditionItemTableWidget.setItem(index, 2, QTableWidgetItem(str(item.currentPrice)))
+                            self.conditionItemTableWidget.setItem(index, 3, QTableWidgetItem(str(item.fluctuationRate)))
+                            self.conditionItemTableWidget.setItem(index, 4, QTableWidgetItem(str(item.priceDiffYes)))
+                            self.conditionItemTableWidget.setItem(index, 5, QTableWidgetItem(str(item.volume)))
+                            self.conditionItemTableWidget.setItem(index, 6, QTableWidgetItem(str(item.openPrice)))
+                            self.conditionItemTableWidget.setItem(index, 7, QTableWidgetItem(str(item.highPrice)))
+                            self.conditionItemTableWidget.setItem(index, 8, QTableWidgetItem(str(item.lowPrice)))
+                            self.conditionItemTableWidget.setItem(index, 9, QTableWidgetItem(str(item.sRQName)))
+                            break
+                    if check3 == 1 :
+                        break
 
     def autoTrade(self):
         # 조건 검색 버튼 클릭시
